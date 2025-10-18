@@ -1,0 +1,7 @@
+[M1][01:22:01] LISTENING on 127.0.0.1:9001 (reliable)
+[M1][01:22:01] PROPOSE start n=1.1 v=M1
+[M1][01:22:01] DECIDE majority formed; broadcasting DECIDE(M1)
+[M1][01:22:01] PROMISE to M8 for n=1.8 (prev accepted n=-1.-1 v=null)
+[M1][01:22:01] ACCEPTED n=1.8 v=M1 from M8
+[M1][01:22:01] LEARN CONSENSUS: M1 has been elected Council President!
+CONSENSUS: M1 has been elected Council President!

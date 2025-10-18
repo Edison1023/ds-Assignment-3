@@ -1,0 +1,5 @@
+[M4][01:22:09] LISTENING on 127.0.0.1:9004 (standard)
+[M4][01:22:09] PROPOSE start n=1.4 v=M5
+[M4][01:22:09] PROMISE to M3 for n=1.3 (prev accepted n=-1.-1 v=null)
+[M4][01:22:10] DECIDE majority formed; broadcasting DECIDE(M5)
+[M4][01:22:10] REJECT PREPARE from M2 for n=1.2 (promised=1.3)

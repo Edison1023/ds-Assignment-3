@@ -1,0 +1,7 @@
+[M2][01:22:01] LISTENING on 127.0.0.1:9002 (reliable)
+[M2][01:22:01] PROMISE to M1 for n=1.1 (prev accepted n=-1.-1 v=null)
+[M2][01:22:01] ACCEPTED n=1.1 v=M1 from M1
+[M2][01:22:01] LEARN CONSENSUS: M1 has been elected Council President!
+CONSENSUS: M1 has been elected Council President!
+[M2][01:22:01] PROMISE to M8 for n=1.8 (prev accepted n=1.1 v=M1)
+[M2][01:22:01] ACCEPTED n=1.8 v=M1 from M8

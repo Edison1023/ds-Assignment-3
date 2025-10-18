@@ -1,0 +1,7 @@
+[M7][01:22:09] LISTENING on 127.0.0.1:9007 (standard)
+[M7][01:22:09] PROMISE to M4 for n=1.4 (prev accepted n=-1.-1 v=null)
+[M7][01:22:09] REJECT PREPARE from M3 for n=1.3 (promised=1.4)
+[M7][01:22:09] ACCEPTED n=1.4 v=M5 from M4
+[M7][01:22:10] LEARN CONSENSUS: M5 has been elected Council President!
+CONSENSUS: M5 has been elected Council President!
+[M7][01:22:10] REJECT PREPARE from M2 for n=1.2 (promised=1.4)
