@@ -22,7 +22,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class CouncilMember {
 
     // ======= Constants =======
-    private static final int MAJORITY = 5;              // 9 members -> majority 5
     private static final String CONFIG_PATH = "network.config";
     private static final int CONNECT_TIMEOUT_MS = 800;  // socket connect timeout
     private static final int RPC_TIMEOUT_MS = 2000;     // request/response wait
@@ -31,6 +30,9 @@ public class CouncilMember {
     private final String id; // e.g., "M1"
     private final Map<String, InetSocketAddress> peers; // memberId -> addr
     private final Profile profile; // latency/failure behavior
+    private final int majority;
+
+    private ServerSocket serverSocket;
 
     // ======= Paxos Acceptor State =======
     private volatile ProposalNum promisedN = ProposalNum.MIN;      // highest promised
@@ -51,6 +53,7 @@ public class CouncilMember {
         this.id = id;
         this.peers = peers;
         this.profile = profile;
+        this.majority = calculateMajority(peers.size());
     }
 
     // ===================== Main =====================
@@ -72,24 +75,31 @@ public class CouncilMember {
     private void startServer() throws Exception {
         InetSocketAddress me = peers.get(id);
         if (me == null) throw new IllegalStateException("Unknown member in config: " + id);
-        ServerSocket server = new ServerSocket();
-        server.bind(me);
+        serverSocket = new ServerSocket();
+        serverSocket.bind(me);
         log("LISTENING on %s:%d (%s)", me.getHostString(), me.getPort(), profile.displayName());
+        Runtime.getRuntime().addShutdownHook(new Thread(this::stopServer));
         ioPool.submit(() -> {
-            while (true) {
+            while (!serverSocket.isClosed()) {
                 try {
-                    Socket s = server.accept();
+                    Socket s = serverSocket.accept();
                     ioPool.submit(() -> handleConnection(s));
+                } catch (SocketException e) {
+                    if (!serverSocket.isClosed()) {
+                        log("ERROR accepting connection: %s", e.getMessage());
+                    }
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    log("ERROR accepting connection: %s", e.getMessage());
                 }
             }
         });
     }
 
     private void handleConnection(Socket s) {
+        SocketAddress remote = null;
         try (BufferedReader br = new BufferedReader(new InputStreamReader(s.getInputStream(), StandardCharsets.UTF_8));
              BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(s.getOutputStream(), StandardCharsets.UTF_8))) {
+            remote = s.getRemoteSocketAddress();
             String line = br.readLine();
             if (line == null) return;
             // Simulate profile delay/failure before processing
@@ -105,7 +115,8 @@ public class CouncilMember {
                 bw.write("\n");
                 bw.flush();
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log("ERROR handling connection from %s: %s", remote != null ? remote : "unknown", e.getMessage());
         } finally {
             try { s.close(); } catch (IOException ignore) {}
         }
@@ -166,7 +177,7 @@ public class CouncilMember {
                 }
             }
         }
-        if (promiseCount < MAJORITY) {
+        if (promiseCount < majority) {
             log("PHASE1 failed: promises=%d < majority", promiseCount);
             return; // baseline; could retry with higher n
         }
@@ -175,7 +186,7 @@ public class CouncilMember {
         List<Message> accepts = rpcAll(Message.acceptRequest(id, n, value));
         int acceptedCount = 0;
         for (Message r : accepts) if (r.type == Type.ACCEPTED) acceptedCount++;
-        if (acceptedCount < MAJORITY) {
+        if (acceptedCount < majority) {
             log("PHASE2 failed: accepted=%d < majority", acceptedCount);
             return; // baseline; could backoff & retry
         }
@@ -194,18 +205,31 @@ public class CouncilMember {
     // ===================== RPC =====================
     private List<Message> rpcAll(Message msg) throws InterruptedException {
         List<Callable<Message>> tasks = new ArrayList<>();
+        List<String> peerOrder = new ArrayList<>();
         for (Map.Entry<String, InetSocketAddress> e : peers.entrySet()) {
             String peerId = e.getKey();
             if (peerId.equals(id)) continue; // no self-RPC
             tasks.add(() -> rpc(peerId, e.getValue(), msg));
+            peerOrder.add(peerId);
         }
         List<Future<Message>> fut = ioPool.invokeAll(tasks, RPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         List<Message> res = new ArrayList<>();
-        for (Future<Message> f : fut) {
+        for (int i = 0; i < fut.size(); i++) {
+            Future<Message> f = fut.get(i);
+            if (f.isCancelled()) {
+                log("RPC to %s cancelled (timeout)", peerOrder.get(i));
+                continue;
+            }
             try {
-                Message r = f.get(1, TimeUnit.MILLISECONDS);
+                Message r = f.get();
                 if (r != null) res.add(r);
-            } catch (Exception ignore) {}
+            } catch (ExecutionException e) {
+                Throwable cause = e.getCause() != null ? e.getCause() : e;
+                log("RPC task failed for %s: %s", peerOrder.get(i), cause.getMessage());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw e;
+            }
         }
         return res;
     }
@@ -224,6 +248,7 @@ public class CouncilMember {
             if (line == null) return null;
             return Message.parse(line);
         } catch (Exception e) {
+            log("RPC to %s failed: %s", peerId, e.getMessage());
             return null;
         }
     }
@@ -243,6 +268,9 @@ public class CouncilMember {
         static Message parse(String line) {
             // type|from|n|value|acceptedN|acceptedV
             String[] p = line.split("\\|", -1);
+            if (p.length != 6) {
+                throw new IllegalArgumentException("Malformed message, expected 6 fields but got " + p.length);
+            }
             Type t = Type.valueOf(p[0]);
             String from = p[1];
             ProposalNum n = p[2].isEmpty()? null : ProposalNum.parse(p[2]);
@@ -268,6 +296,26 @@ public class CouncilMember {
         static Message ack(String from){ return new Message(Type.ACK, from, null, null, null, null);}
         static Message error(String from, String msg){ return new Message(Type.ERROR, from, null, msg, null, null);}
         public String toString(){ return serialize(); }
+    }
+
+    private static int calculateMajority(int members) {
+        if (members <= 0) {
+            throw new IllegalArgumentException("Member count must be positive");
+        }
+        return (members / 2) + 1;
+    }
+
+    private void stopServer() {
+        if (serverSocket != null && !serverSocket.isClosed()) {
+            try {
+                serverSocket.close();
+            } catch (IOException e) {
+                log("ERROR closing server socket: %s", e.getMessage());
+            }
+        }
+        if (!ioPool.isShutdown()) {
+            ioPool.shutdownNow();
+        }
     }
 
     static class ProposalNum implements Comparable<ProposalNum> {
