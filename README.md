@@ -11,7 +11,7 @@ The system demonstrates consensus formation under:
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 ds-Assignment-3/
@@ -32,43 +32,51 @@ ds-Assignment-3/
 
 ---
 
-## How It Works
+## Manual Compilation (Optional)
 
-### 1. Roles
-- **Proposer** – initiates election proposals.
-- **Acceptor** – promises and accepts proposals following Paxos rules.
-- **Learner** – learns and prints the final consensus result.
+If you prefer to compile and run the program manually instead of using the provided script:
 
-### 2. Message Format
-Each message between members uses a simple text format:
+### Step 1 — Compile
+From the project root directory:
+```bash
+javac -d out src/CouncilMember.java
 ```
-TYPE|FROM|PROPOSAL_NUM|VALUE|ACCEPTED_N|ACCEPTED_V
+This will compile the source file into the `out/` directory.
+
+> The `-d out` flag creates a separate folder for compiled `.class` files, keeping the workspace clean.
+
+---
+
+### Step 2 — Run a Single Member
+For example, start **Member M1** in a reliable profile with a proposal:
+```bash
+java -cp out CouncilMember M1 --profile reliable --propose M5 --propose-delay 200
 ```
+
+You can run multiple members (M1–M9) in separate terminals using different profiles from `network.config`.
 
 Example:
-```
-PREPARE|M4|1.4|M5||
+```bash
+java -cp out CouncilMember M2 --profile latent
+java -cp out CouncilMember M3 --profile failing
 ```
 
-### 3. Config File (`network.config`)
-Defines all members and their listening ports:
+---
+
+### Step 3 — Observe Output
+Each process will print messages such as:
 ```
-M1,127.0.0.1,9001
-M2,127.0.0.1,9002
-M3,127.0.0.1,9003
-M4,127.0.0.1,9004
-M5,127.0.0.1,9005
-M6,127.0.0.1,9006
-M7,127.0.0.1,9007
-M8,127.0.0.1,9008
-M9,127.0.0.1,9009
+[M1][16:45:58] PROPOSE start n=1.1 v=M5
+[M2][16:45:58] LEARN CONSENSUS: M5 has been elected Council President!
 ```
+
+Once a majority accepts the proposal, **all members will output the consensus**.
 
 ---
 
 ## Running the Tests
 
-### Step 1 – Compile
+### Step 1 – Compile and Run All Scenarios Automatically
 ```bash
 bash run_tests.sh
 ```
@@ -156,7 +164,7 @@ logs-s3/
 ---
 
 ## 🧑‍💻 Author
-**Edison Li (a1909057)**  
+**Enze Li (a1909057)**  
 The University of Adelaide  
 Distributed Systems – Assignment 3 (Paxos Consensus)
 
