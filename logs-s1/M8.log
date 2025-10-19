@@ -1,5 +1,7 @@
-[M8][01:21:54] LISTENING on 127.0.0.1:9008 (reliable)
-[M8][01:21:54] PROMISE to M4 for n=1.4 (prev accepted n=-1.-1 v=null)
-[M8][01:21:54] ACCEPTED n=1.4 v=M5 from M4
-[M8][01:21:54] LEARN CONSENSUS: M5 has been elected Council President!
+Unknown arg: --config
+Unknown arg: network.config
+[M8][18:20:30] LISTENING on 127.0.0.1:9008 (reliable)
+[M8][18:20:30] PROMISE to M4 for n=1.4 (prev accepted n=-1.-1 v=null)
+[M8][18:20:30] ACCEPTED n=1.4 v=M5 from M4
+[M8][18:20:30] LEARN CONSENSUS: M5 has been elected Council President!
 CONSENSUS: M5 has been elected Council President!

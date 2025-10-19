@@ -1,3 +1,5 @@
-[M4][01:21:53] LISTENING on 127.0.0.1:9004 (reliable)
-[M4][01:21:54] PROPOSE start n=1.4 v=M5
-[M4][01:21:54] DECIDE majority formed; broadcasting DECIDE(M5)
+Unknown arg: --config
+Unknown arg: network.config
+[M4][18:20:30] LISTENING on 127.0.0.1:9004 (reliable)
+[M4][18:20:30] PROPOSE start n=1.4 v=M5
+[M4][18:20:30] DECIDE majority formed; broadcasting DECIDE(M5)
