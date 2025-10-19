@@ -82,7 +82,7 @@ The script automatically:
 
 ## Scenarios and Expected Outcomes
 
-### ✅ **Scenario 1: Ideal Network**
+### **Scenario 1: Ideal Network**
 - **Setup:** All 9 members use the `reliable` profile.
 - **Test:** One member (e.g., M4) proposes M5 for president.
 - **Expected:** All members agree — *M5 has been elected Council President!*
